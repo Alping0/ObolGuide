@@ -1,16 +1,14 @@
-# Node rules:
-## Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
-.grunt
+$sudo apt update && sudo apt upgrade -y
+$sudo apt install make clang pkg-config libssl-dev libclang-dev build-essential git curl ntp jq llvm tmux htop screen unzip -y
+$sudo apt install docker.io -y
+$git clone https://github.com/docker/compose
+$cd compose
+$git checkout v2.6.1
+$make
+$cd
+$mv compose/bin/docker-compose /usr/bin
+$git clone https://github.com/ObolNetwork/charon-distributed-validator-node.git
+$chmod o+w charon-distributed-validator-node
+$cd charon-distributed-validator-node
+$docker run --rm -v "$(pwd):/opt/charon" obolnetwork/charon:v0.9.0 create enr
 
-## Dependency directory
-## Commenting this out is preferred by some people, see
-## https://docs.npmjs.com/misc/faq#should-i-check-my-node_modules-folder-into-git
-node_modules
-
-# Book build output
-_book
-
-# eBook build output
-*.epub
-*.mobi
-*.pdf
