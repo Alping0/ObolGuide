@@ -1,14 +1,96 @@
-$sudo apt update && sudo apt upgrade -y
-$sudo apt install make clang pkg-config libssl-dev libclang-dev build-essential git curl ntp jq llvm tmux htop screen unzip -y
-$sudo apt install docker.io -y
-$git clone https://github.com/docker/compose
-$cd compose
-$git checkout v2.6.1
-$make
-$cd
-$mv compose/bin/docker-compose /usr/bin
-$git clone https://github.com/ObolNetwork/charon-distributed-validator-node.git
-$chmod o+w charon-distributed-validator-node
-$cd charon-distributed-validator-node
-$docker run --rm -v "$(pwd):/opt/charon" obolnetwork/charon:v0.9.0 create enr
+$ sudo apt update && sudo apt upgrade -y
+$ sudo apt install make clang pkg-config libssl-dev libclang-dev build-essential git curl ntp jq llvm tmux htop screen unzip -y
+$ sudo apt install docker.io -y
+$ git clone https://github.com/docker/compose
+$ cd compose
+$ git checkout v2.6.1
+$ make
+$ cd
+$ mv compose/bin/docker-compose /usr/bin
+$ git clone https://github.com/ObolNetwork/charon-distributed-validator-node.git
+$ chmod o+w charon-distributed-validator-node
+$ cd charon-distributed-validator-node
+$ docker run --rm -v "$(pwd):/opt/charon" obolnetwork/charon:v0.9.0 create enr
+
+1-) Create Team
+#1-Captain and every team member should get in console
+#2-Need to generate new enr keys for every team member(You could face an error with old one)
+$ cd charon-distributed-validator-node
+#You need to get in charon-distributred-validator-node
+$ sudo chmod -R 777 .charon
+#Permisson to expand folder(Every team member should do.)
+$ docker run --rm -v "$(pwd):/opt/charon" obolnetwork/charon:v0.9.0 enr
+#Generate new enr keys, every team member should send it to the team captain.
+
+a)	THINGS THAT TEAM CAPTAIN SHOULD DO
+$ cp .env.sample .env
+#Captain need to create env
+$ nano .env.sample.env
+#Captain need to get in and write here captain’s and team members’s enr address. CHARON_OPERATOR_ENRS=enr:-JG4QPtAzqYmB_KrexBQsBTWAyKaktKnwK, enr:-abcdefgasdf,enr:-txyzuybcsgjgg should look like this must seperate with comma.
+#After that, captain or one of the team member should enter the code according to the number of the team member.
+$docker run --rm -v "$(pwd):/opt/charon" --env-file .env obolnetwork/charon:v0.9.0 create dkg --name="Team name" --fee-recipient-address="ERC-20 deposit address" --withdrawal-address="ERC-20 deposit address" --threshold "Number of team member"
+#You should enter a Team name, ERC-20 deposit address and write number to the after threshold.
+#After you enter this code, a new json file which name is cluster-definition.json occurs in to the captain’s .charon folder.
+#Team captain should send this file to the every team member and team members should drop this file into the .charon folder.
+
+b)	THINGS THAT EVERY TEAM MEMBER SHOULD DO
+#When every team member has the same cluster-definition.json file on theirs .charon folder you are ready to go! Everyone should enter this code same time(I suggest max 1 min to first entry to last) on console and wait for the peer.
+$ docker run --rm -v "$(pwd):/opt/charon" obolnetwork/charon:v0.9.0 dkg --p2p-bootnode-relay
+#When everybody connected to each other you will see succes on the console, it takes 2-3 minutes.
+#There will be new .charon folder after this process. If you want to transfer your node you will be need this, so download and keep it!
+
+2-)	Guide to Staking on Ethereum (Ubuntu/Goerli/Lighthouse)
+$ cd ~
+$ curl -LO https://github.com/ethereum/staking-deposit-cli/releases/download/v2.3.0/staking_deposit-cli-76ed782-linux-amd64.tar.gz
+$ sudo tar xvf staking_deposit-cli-76ed782-linux-amd64.tar.gz
+$ cd staking_deposit-cli-76ed782-linux-amd64
+
+#Run the Deposit Tool (Staking Deposit CLI)
+#On the secure machine run the binary file in a terminal window (or CMD in Windows). For example, if you want to create 1 validator use the commands below.
+$ sudo ./deposit new-mnemonic --num_validators 1 --chain goerli
+#Once you execute the above steps on your platform of choice and provide your language preferences you will be asked to create the validator keystore(s) password. Back it up somewhere safe.
+#You Next, a seed phrase (mnemonic) will be generated. Back it up somewhere safe. This is CRITICAL. 
+#You will eventually use this to generate your withdrawal keys for your staked Goerli test network ETH or to add additional validators.will need this later to load the validator keys into the Consensus Client validator wallet.
+
+Timekeeping
+#Running validators against a blockchain requires accurate timekeeping in order to ensure proper synchronization with the blockchain network. 
+#Ubuntu has time synchronization built in and activated by default using the timedatectl systemd directive.
+#Verify it’s running correctly.
+$ timedatectl
+#The NTP service should be active. If not then run:
+$ sudo timedatectl set-ntp on
+
+Generate Client Authentication Secret
+#Create a directory on the server to store the JWT file.
+$ sudo mkdir -p /var/lib/jwtsecret
+#Generate the JWT file using the openssl cryptography software library.
+$ openssl rand -hex 32 | sudo tee /var/lib/jwtsecret/jwt.hex > /dev/null
+#Use the following command to inspect the file with the hex string.
+$ sudo nano /var/lib/jwtsecret/jwt.hex
+#Press <CTRL>+X to exit. 
+
+Configure the Execution Client
+#Install the Geth Execution Client by downloading the latest version.
+#Go https://geth.ethereum.org/downloads/ to get the Latest release of Geth.
+#Right-click on the Geth for Linux button and copy the download link to the tar.gz file. Be sure to copy the correct link.
+$ cd ~
+$ curl -LO https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.10.21-67109427.tar.gz
+$ tar xvf geth-linux-amd64-1.10.21-67109427.tar.gz
+$ cd geth-linux-amd64-1.10.21-67109427
+$ sudo cp geth /usr/local/bin
+#Clean up the files. Modify the file name to match the downloaded version.
+$ cd ~
+$ rm geth-linux-amd64-1.10.21-67109427.tar.gz
+$ rm -r geth-linux-amd64-1.10.21-67109427
+#Geth will be configured to run as a background service. Create an account for the service to run under. This type of account can’t log into the server.
+$ sudo useradd --no-create-home --shell /bin/false geth
+#Create the data directory. This is required for storing the Ethereum blockchain data.
+$ sudo mkdir -p /var/lib/geth
+#Set directory permissions. The geth user account needs permission to modify the data directory.
+
+
+
+
+
+
 
